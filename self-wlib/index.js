@@ -1,7 +1,16 @@
 const scryService = require('./lib/scryservice')
 
 
-if (window.localStorage) {
+ let  msg = scryService.test('http://localhost:8080')
+  setTimeout(val=>{
+
+    let token = localStorage.getItem('token')
+    let key = localStorage.getItem("AesKey")
+    console.log("协商产生的key:",key.toString('hex'),",Token：",token)
+  },1000,'hello')
+
+
+/*if (window.localStorage) {
   let flag = localStorage.getItem('HasInit1')
   console.log('check flag:', flag)
   //若浏览器针对该应用
@@ -23,7 +32,19 @@ if (window.localStorage) {
       console.log(err)
     })
 
- /*   promise.then(function (num) {
+
+
+    localStorage.setItem('HasInit', 'true')
+  } else {
+    console.log('该浏览器已经执行过初始化操作')
+  }
+
+} else {
+  alert('当前浏览器不满足使用要求')
+}*/
+
+
+/*   promise.then(function (num) {
       scryService.connectInit()
       console.log("num is ",num)
     }).then().then(function () {
@@ -37,18 +58,6 @@ if (window.localStorage) {
     console.log('scryService agree is:', agree)
     scryService.getToken()
     console.log('scryService token is:', token)*/
-
-    localStorage.setItem('HasInit', 'true')
-  } else {
-    console.log('该浏览器已经执行过初始化操作')
-  }
-
-} else {
-  alert('当前浏览器不满足使用要求')
-}
-
-
-
 
 
 

@@ -2,6 +2,7 @@ const ethUtils = require('ethereumjs-util')
 const {randomBytes} = require('crypto')
 
 const cookie = uuid()
+const aesjs = require('aes-js');
 
 function generate_keys_pair () {
   let keypair = {privateKey: null, publicKey: null}
@@ -62,7 +63,7 @@ function verify_connect_data (siged_data, secret) {
   console.log("verify sign is:",result);
   if (result.result) {
     let agree = ethUtils.secp256k1.ecdh(pubkey, secret)
-    return {'result': flag, 'detail': agree}
+    return {'result':result.result, 'detail': agree}
   } else {
     return result
   }
@@ -129,6 +130,14 @@ function prepare_data (name, data) {
   }
   let json_str = JSON.stringify(ret)
   return json_str
+}
+
+function encrypt (key,origndata) {
+  
+}
+
+function decrypt () {
+  
 }
 
 export { generate_keys_pair, establish_connect_data, prepare_data, verify_sign, verify_connect_data, userSign }

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.routeguide";
+option java_outer_classname = "AuthorProto";
+
+package scryinfo;
+
+// The greeting service definition.
+service Author {
+    // Sends a greeting
+    rpc ConnectInit (AuthorDataRequest) returns (AuthorDataResponse) {
+    }
+    rpc AgreeRandom (AuthorDataRequest) returns (AuthorDataResponse) {
+    }
+    rpc AgreeToken (AuthorDataRequest) returns (AuthorDataResponse) {
+    }
+    rpc FreshToken (AuthorDataRequest) returns (AuthorDataResponse) {
+    }
+    rpc VerifyToken(AuthorDataRequest)returns (AuthorDataResponse){}
+}
+
+message AuthorDataRequest {
+    string data = 1;
+}
+
+message AuthorDataResponse {
+    bool status = 1;
+    string detail = 2;
+}

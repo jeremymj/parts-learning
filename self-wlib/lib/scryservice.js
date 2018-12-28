@@ -13,7 +13,6 @@ scryservice.init = function (host) {
 }
 
 scryservice.connectInit = function () {
-  return new Promise(function (resolve, reject) {
     //开始协商通信对称加密密钥
     let connect_keypair = scryUtil.generate_keys_pair()
     console.log('publickey:', connect_keypair.publicKey.toString('hex'), 'privatekey:' + connect_keypair.privateKey.toString('hex'))
@@ -31,11 +30,8 @@ scryservice.connectInit = function () {
        console.log(result.detail)
       }
     })
-  })
-
 }
 scryservice.getToken = function () {
-  return new Promise(function (resolve, reject) {
     //开始协商随机数
     let req = new AuthorDataRequest()
     let rand_keypair = scryUtil.generate_keys_pair()
@@ -47,10 +43,7 @@ scryservice.getToken = function () {
       alert('需要对当前会话进行认证')
       //对随机数进行签名,获取token
      // verifyRandom(random)
-      resolve(random)
     })
-  })
-
 }
 scryservice.getMnemonic = function () {
   let mnemonic = bip39Util.generateMnemonic()
@@ -64,7 +57,6 @@ console.log('node private key is:', node.privateKey.toString('hex'), ',public ke
 //验证随机数，验证通过后，则生成token
 scryservice.verifyRandom = function(random) {
   //先暂时将公私钥使用随机密钥代替,这个地方需要获取用户的公钥和私钥
-  return new Promise(function (resolve, reject) {
     let rand_keypair = scryUtil.generate_keys_pair()
     let signed_data = scryUtil.userSign(random, rand_keypair)
     let prepare_signed_data = scryUtil.prepare_data('sendSign', signed_data)
@@ -74,17 +66,8 @@ scryservice.verifyRandom = function(random) {
     scryservice.client.agreeToken(req, {}, (error, response) => {
       console.log('agree token is:', response.getDetail())
       const token = response.getDetail()
-      resolve(token)
     })
-  })
-
 }
-
-/*let promise = new Promise(function (resolve, reject) {
-  console.log('first execute')
-  scryService.init('http://localhost:8080')
-  resolve(1)
-})*/
 
 module.exports = scryservice
 

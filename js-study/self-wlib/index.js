@@ -1,13 +1,31 @@
 const scryService = require('./lib/scryservice')
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
- let  msg = scryService.test('http://localhost:8080')
+async function demo() {
+  console.log('Taking a break...');
+  await sleep(2000);
+  console.log('Two seconds later');
+}
+
+
+
+let msg = scryService.init('http://localhost:8080')
+demo();
+console.log("msg is:",msg)
+/*let token = localStorage.getItem('token')
+let key = localStorage.getItem("AesKey")
+console.log("协商产生的key:",key.toString('hex'),",Token：",token)*/
+
   setTimeout(val=>{
-
+    console.log("msg is:",msg)
     let token = localStorage.getItem('token')
     let key = localStorage.getItem("AesKey")
     console.log("协商产生的key:",key.toString('hex'),",Token：",token)
   },1000,'hello')
+console.log("execute is over!")
 
 
 /*if (window.localStorage) {

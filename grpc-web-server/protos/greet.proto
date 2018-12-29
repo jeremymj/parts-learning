@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.authorexample";
+option java_outer_classname = "AuthorTestProto";
+
+package greet;
+
+// The greeting service definition.
+service GreetExample {
+    // Sends a greeting
+    rpc SayHello (GreetRequest) returns (GreetResponse) {
+    }
+}
+
+message GreetRequest {
+    string name = 1;
+    string age = 2;
+
+}
+
+message GreetResponse {
+    string msg = 1;
+}

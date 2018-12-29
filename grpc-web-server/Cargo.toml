@@ -1,0 +1,26 @@
+[package]
+name = "grpc-web-server"
+version = "0.1.0"
+authors = ["jeremy <jm140915@hotmail.com>"]
+edition = "2018"
+build = "build.rs"
+
+
+[lib]
+name="protos"
+path="protos/mod.rs"
+
+[[bin]]
+name="server"
+path="src/server.rs"
+
+
+[dependencies]
+grpcio = "0.4"
+protobuf = "2"
+futures = "0.1.*"
+
+scryinfo = {path = "../../scryinfo"}
+
+[build-dependencies]
+protoc-grpcio="0.3.0"

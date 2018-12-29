@@ -36,7 +36,7 @@ function connectInit () {
         if (result.result) {
           scryservice.agree = result.detail
           resolve(result.detail)
-          localStorage.setItem('AesKey',result.detail.toString('hex'))
+          localStorage.setItem('AesKey', result.detail.toString('hex'))
           console.log('agree encrypt key is:', result.detail)
         } else {
           reject(result.detail)
@@ -94,29 +94,41 @@ function verifyRandom (random) {
     client.agreeToken(req, {}, (error, response) => {
       console.log('agree token is:', response.getDetail())
       const token = response.getDetail()
+      localStorage.setItem('token', token)
       resolve(token)
     })
   })
 }
 
-scryservice.test = function (address) {
+scryservice.init = async function(address) {
+  client = new AuthorClient(address)
+  const ci = await connectInit()
+  const random = await getAgreeRandom()
+  console.log("init random is:",random)
+  const verify = await verifyRandom(random)
+  console.log('init:', ci, ',random:', random, ',verify:', verify)
+}
+/**
+ * 以下为使用Promise方式实现的初始化过程
+ */
+/*scryservice.init = function (address) {
   log('start service')
   //创建一个Promise实例
-  let demo = new Promise(function (resolve, reject) {
+  let promise = new Promise(function (resolve, reject) {
     client = new AuthorClient(address)
     resolve()
   })
 
-  demo.then(connectInit)
+  promise.then(connectInit)
     .then(getAgreeRandom)
     .then(verifyRandom)
-    .then(token=> {
-      log("产生的token为:"+token.toString())
-      localStorage.setItem("token",token)
+    .then(token => {
+      log('产生的token为:' + token.toString())
+      localStorage.setItem('token', token)
     }).catch(function (err) {
     log(err)
   })
-}
+}*/
 
 module.exports = scryservice
 

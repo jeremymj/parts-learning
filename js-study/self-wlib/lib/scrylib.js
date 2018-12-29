@@ -1,9 +1,8 @@
 const ethUtils = require('ethereumjs-util')
 const {randomBytes} = require('crypto')
-
-const cookie = uuid()
 const aesjs = require('aes-js');
 
+const cookie = uuid()
 function generate_keys_pair () {
   let keypair = {privateKey: null, publicKey: null}
   let privKey
@@ -132,13 +131,29 @@ function prepare_data (name, data) {
   return json_str
 }
 
-function encrypt (key,origndata) {
-  
+/**
+ * 对数据使用 AES ctr的模式进行加密
+ * @param key 加密使用的密钥
+ * @param data 需要加密的数据 数据格式为 Bytes
+ * @returns {Long | *} 返回加密后的数据，数据格式为Byte
+ */
+function encrypt (key,data) {
+  let aesCtr = new aesjs.ModeOfOperation.ctr(key)
+  let encryptedByte = aesCtr.encrypt(data)
+  //let encryptedHex = aesjs.utils.hex.fromBytes(encryptedByte);
+  return encryptedByte
 }
 
-function decrypt () {
-  
+/**
+ * 对数据使用AES ctr模式解密，输入数据为 Byte
+ * @param key
+ * @param encrydata
+ */
+function decrypt (key,encrydata) {
+  let desaesCtr = new aesjs.ModeOfOperation.ctr(key)
+  let decryptedBytes = desaesCtr.decrypt(encrydata)
+  return decryptedBytes
 }
 
-export { generate_keys_pair, establish_connect_data, prepare_data, verify_sign, verify_connect_data, userSign }
+export { generate_keys_pair, establish_connect_data, prepare_data, verify_sign, verify_connect_data, userSign,encrypt,decrypt }
 

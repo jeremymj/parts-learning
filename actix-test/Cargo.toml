@@ -1,0 +1,23 @@
+[package]
+name = "actix-test"
+version = "0.1.0"
+authors = ["jeremy <jm140915@hotmail.com>"]
+edition = "2018"
+
+[dependencies]
+actix = "0.7"
+actix-web = "0.7"
+
+futures = "0.1"
+env_logger = "0.5"
+bytes = "0.4"
+serde="1.0"
+serde_derive = "1.0.84"
+serde_json = "*"
+
+grpcio = "0.4"
+protobuf = "2"
+lazy_static= "*"
+lmdb-rs = "0.7.6"
+
+scryinfo = {path = "/home/jeremy/CLionProjects/self/demo/scryinfo"}

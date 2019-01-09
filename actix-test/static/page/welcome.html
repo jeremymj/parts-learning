@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>用户认证</title>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon"/>
+    <script src="../dist/main.js"></script>
+    <style>
+        #scry-clinet-form{
+            margin: 50px auto;
+            width: 400px;
+            height: 300px;
+        }
+        #userauthor{
+            margin-top: 50px;
+            width: 160px;
+        }
+        form{
+            width: 460px;
+            height: 300px;
+            background-color: blanchedalmond;
+            margin-top: 20px;
+        }
+        #submit{
+            width: 160px;
+            height: 35px;
+            margin: 20px 140px;
+        }
+        #tel-div{
+            padding: 30px 0px 10px 60px;
+        }
+        #address-div{
+            padding: 10px 0px 10px 60px;
+        }
+        #user-info-title{
+            padding: 40px 0px 10px 150px;
+        }
+    </style>
+</head>
+<body>
+<h1>Welcome <img width="30px" height="30px" src="/static/images/actixLogo.png"/></h1>
+
+<div id="scry-clinet-form">
+    <div><input type="button" id="userauthor" value="一键认证"/></div>
+    <form>
+        <div id="user-info-title">用户信息补充</div>
+        <div id="tel-div"><span>联系方式:</span><input type="text"/></div>
+        <div id="address-div"><span>通讯地址:</span><input type="text"/></div>
+        <div><input id="submit" type="button" value="提交"></div>
+    </form>
+</div>
+</body>
+</html>

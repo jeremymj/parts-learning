@@ -6,6 +6,12 @@
     <link rel="shortcut icon" type="image/x-icon" href="/favicon"/>
     <script src="../dist/main.js"></script>
     <style>
+        #certification-center-form{
+            margin: 50px auto;
+            width: 460px;
+            height: 200px;
+            background-color: aliceblue;
+        }
         #scry-clinet-form{
             margin: 50px auto;
             width: 400px;
@@ -39,9 +45,21 @@
 </head>
 <body>
 <h1>Welcome <img width="30px" height="30px" src="/static/images/actixLogo.png"/></h1>
-
+<div id="certification-center-form">
+    <h3>认证中心充当可信的第三方，负责用户认证，服务授权</h3>
+    <div><input type="button" id="generate-code-but" value="通信初始化"/></div>
+    <form>
+        <span>用户可以将数据存放在信任的平台上，通过授权的方式提供给第三服务使用<span>
+        <div>提交常用联系方式：</div>
+        <div id="user-info-tel-div"><span>联系方式:</span><input type="text"/></div>
+        <div id="user-info-address-div"><span>通讯地址:</span><input type="text"/></div>
+        <div id="user-info-credit_card"><span>信用卡号:</span><input type="text"/></div>
+        <div><input id="add-user-info-but" type="button" value="提交"></div>
+    </form>
+</div>
+<div></div>
 <div id="scry-clinet-form">
-    <div><input type="button" id="userauthor" value="一键认证"/></div>
+    <div><input type="button" id="userauthor" value="用户登录"/></div>
     <form>
         <div id="user-info-title">用户信息补充</div>
         <div id="tel-div"><span>联系方式:</span><input type="text"/></div>

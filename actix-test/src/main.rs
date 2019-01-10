@@ -22,9 +22,9 @@ use futures::Stream;
 use futures::sync::mpsc;
 use grpcio::{ChannelBuilder, EnvBuilder};
 use lmdb_rs::{DbFlags, EnvBuilder as Lmdb_EnvBuilder};
-use scryinfo::scry_author::helper;
-use scryinfo::scry_grpc::author::scryinfo_author::AuthorDataRequest;
-use scryinfo::scry_grpc::author::scryinfo_author_grpc::AuthorClient;
+use scryinfo::author::aes;
+use scryinfo::grpcproto::scryinfo_author::AuthorDataRequest;
+use scryinfo::grpcproto::scryinfo_author_grpc::AuthorClient;
 use serde_json::{Value};
 
 lazy_static! {
@@ -126,7 +126,7 @@ pub fn get_decrypted_data(token: &str, encrypted_data: &str) -> std::string::Str
     println!("agree key:{}", agree_key);
     println!("encrypted data is:{}", encrypted_data);
     //decrypt_content(data: &str, agree_key: &str)
-    let result = helper::aes::decrypt_content(encrypted_data, agree_key);
+    let result = aes::decrypt_content(encrypted_data, agree_key);
     let receive_data = match result {
         Ok(data) => {
             //println!("decrypt data is:{}",String::from_utf8(data).unwrap());
@@ -138,7 +138,8 @@ pub fn get_decrypted_data(token: &str, encrypted_data: &str) -> std::string::Str
         }
     };
     println!("recevie data is:{}",receive_data);
-    let resp_data = helper::aes::encrypt_content(receive_data.as_bytes(), agree_key);
+
+    let resp_data =  aes::encrypt_content(receive_data.as_bytes(),agree_key);
     println!("{}", resp_data);
     resp_data
 }

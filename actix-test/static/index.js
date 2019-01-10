@@ -3,6 +3,13 @@ const $ = require('jquery')
 
 $(document).ready(function () {
     let host = 'http://127.0.0.1:9080/'
+    $('#generate-code-but').click(function () {
+        let initOver = function () {
+            alert("初始化结束，可以进行安全交互");
+        }
+        scryUtil.startAuthorService('http://localhost:8080', initOver)
+    });
+
     $('#userauthor').click(function () {
         //需要一个回调函数
         let login = function () {
@@ -16,6 +23,15 @@ $(document).ready(function () {
         }
         //执行是否初始化的检查
         scryUtil.startAuthorService('http://localhost:8080', login)
+    })
+    $('#add-user-info-but').click(function () {
+        let tel = $('#user-info-tel-div input').val()
+        let address = $('#user-info-address-div input').val()
+        let credit_card = $('#user-info-credit_card input').val()
+        let token = localStorage.getItem("token")
+        let requestdata = {token: token, tel: tel, address: address, credit_card: credit_card}
+        scryUtil.addUserInfo('http://localhost:8079', requestdata)
+
     })
 
     $('#submit').click(function () {
@@ -39,7 +55,7 @@ $(document).ready(function () {
             crossDomain: true,
             success: function (data) {
                 console.log("data result:", data.data)
-               let resp =  scryUtil.respDataDeserialization(data.data)
+                let resp = scryUtil.respDataDeserialization(data.data)
                 alert('返回数据:' + resp)
             }
         })

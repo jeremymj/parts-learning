@@ -105,17 +105,18 @@ fn user_login(params: Form<MyParams>) -> Result<HttpResponse> {
     let mut request = AuthorDataRequest::new();
     request.set_data(params.data.clone());
     let reply = client.verify_token(&request).unwrap();
-    let result = format!("detail info is:{},public key:{},token:{},agree_key:{}", reply.get_detail(), reply.get_public_key(), reply.get_token(), reply.get_agree_key());
+    let result = format!("public key:{},token:{},agree_key:{}", reply.get_public_key(), reply.get_token(), reply.get_agree_key());
     {
         let mut repos_mut = repos.lock().unwrap();
         repos_mut.insert(reply.get_token().to_string(), (reply.get_public_key().to_string(), reply.get_agree_key().to_string()));
     }
+    let resp_data =  aes::encrypt_content(result.as_bytes(),reply.get_agree_key());
 
     println!("verify token result is:{}", result);
 
     Ok(HttpResponse::build(http::StatusCode::OK)
         .content_type("text/plain")
-        .body(format!("{{\"data\":\"{}\"}}", params.data)))
+        .body(format!("{{\"data\":\"{}\"}}", resp_data)))
 }
 
 

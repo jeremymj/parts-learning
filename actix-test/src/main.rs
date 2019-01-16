@@ -22,7 +22,7 @@ use futures::Stream;
 use futures::sync::mpsc;
 use grpcio::{ChannelBuilder, EnvBuilder};
 use lmdb_rs::{DbFlags, EnvBuilder as Lmdb_EnvBuilder};
-use scryinfo::author::aes;
+use scryinfo::author;
 use scryinfo::grpcproto::scryinfo_author::AuthorDataRequest;
 use scryinfo::grpcproto::scryinfo_author_grpc::AuthorClient;
 use serde_json::{Value};
@@ -110,7 +110,7 @@ fn user_login(params: Form<MyParams>) -> Result<HttpResponse> {
         let mut repos_mut = repos.lock().unwrap();
         repos_mut.insert(reply.get_token().to_string(), (reply.get_public_key().to_string(), reply.get_agree_key().to_string()));
     }
-    let resp_data =  aes::encrypt_content(result.as_bytes(),reply.get_agree_key());
+    let resp_data =  author::aes::encrypt_content(result.as_bytes(),reply.get_agree_key());
 
     println!("verify token result is:{}", result);
 
@@ -127,7 +127,7 @@ pub fn get_decrypted_data(token: &str, encrypted_data: &str) -> std::string::Str
     println!("agree key:{}", agree_key);
     println!("encrypted data is:{}", encrypted_data);
     //decrypt_content(data: &str, agree_key: &str)
-    let result = aes::decrypt_content(encrypted_data, agree_key);
+    let result = author::aes::decrypt_content(encrypted_data, agree_key);
     let receive_data = match result {
         Ok(data) => {
             //println!("decrypt data is:{}",String::from_utf8(data).unwrap());
@@ -140,7 +140,7 @@ pub fn get_decrypted_data(token: &str, encrypted_data: &str) -> std::string::Str
     };
     println!("recevie data is:{}",receive_data);
 
-    let resp_data =  aes::encrypt_content(receive_data.as_bytes(),agree_key);
+    let resp_data =  author::aes::encrypt_content(receive_data.as_bytes(),agree_key);
     println!("{}", resp_data);
     resp_data
 }
@@ -160,14 +160,50 @@ fn add_notice_method(params: Form<MyParams>) -> Result<HttpResponse> {
     let resp_data = get_decrypted_data(token_str, encrypt_data_str);
     Ok(HttpResponse::build(http::StatusCode::OK)
         .content_type("text/plain")
-        .header(header::ACCESS_CONTROL_ALLOW_ORIGIN,"127.0.0.1")
         .body(format!("{{\"data\":\"{}\"}}", resp_data)))
+}
+
+fn submit_order(params: Form<MyParams>) -> Result<HttpResponse> {
+    let order_data = params.data.clone();
+    println!("submit_order:{}", order_data);
+    let req_data_json: Value = serde_json::from_str(&order_data).unwrap();
+    //获取到token
+    let token = req_data_json["token"].to_string();
+    let token_str = token.trim_matches('"');
+    //加密的数据
+    let encrypt_data = req_data_json["data"].to_string();
+    let encrypt_data_str = encrypt_data.trim_matches('"');
+    let req_data = get_decrypted_data(token_str, encrypt_data_str);
+    //这个请求需要用户的授权,拼接用户授权的数据
+    let puk = author::eckey::load_public_key();
+    let author_data = format!("{{\"public_key\":\"{}\",\"datatype\":\"{}\"}}",puk,"UserBasicInfo");
+
+    println!("submit order resp data is：{}",author_data);
+
+    Ok(HttpResponse::build(http::StatusCode::OK)
+        .content_type("text/plain")
+        .body(author_data))
 }
 
 fn main() {
     /*  env::set_var("RUST_LOG", "actix_web=debug");
       env::set_var("RUST_BACKTRACE", "1");
       env_logger::init();*/
+    let pair = author::utils::check_file_exist("keystore");
+    match pair {
+        Some(file)=>println!("keystore file is exist!"),
+        None=>{
+           let generate_flag =  author::eckey::password_set("123456");
+            match generate_flag {
+                Ok(flag) =>{
+                  println!("服务端密钥初始化结束");
+                },
+                Err(e)=>{
+                    println!("{}",e.to_string());
+                }
+            }
+        }
+    }
     let sys = actix::System::new("basic-example");
 
     let addr = server::new(
@@ -190,6 +226,7 @@ fn main() {
             .resource("/async-body/{name}", |r| r.method(Method::GET).with(index_async_body))
             .resource("/userLogin", |r| r.method(Method::POST).with(user_login))
             .resource("/addNoticeMethod", |r| r.method(Method::POST).with(add_notice_method))
+            .resource("/submitOrder", |r| r.method(Method::POST).with(submit_order))
             .resource("/test", |r| r.f(|req| {
                 match *req.method() {
                     Method::GET => HttpResponse::Ok(),
@@ -208,7 +245,6 @@ fn main() {
                 println!("{:?}", req);
                 HttpResponse::Found()
                     .header(header::LOCATION, "static/page/welcome.html")
-                    .header(header::ACCESS_CONTROL_ALLOW_ORIGIN,"127.0.0.1")
                     .finish()
             }))
             // default

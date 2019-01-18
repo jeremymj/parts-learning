@@ -20,7 +20,7 @@ $(document).ready(function () {
                 let json_data = JSON.parse(data)
                 console.log("data result:", json_data.data)
                 let resp = scryUtil.respDataDeserialization(json_data.data)
-                alert('返回数据:' + resp)
+                alert('用户认证成功')
             })
             console.log('prepare deal more action')
         }
@@ -69,10 +69,9 @@ $(document).ready(function () {
 
             let requestdata = {id: "SN23354"};
             let json_str = JSON.stringify(requestdata)
-            console.log(json_str)
+            console.log("cart-submit,requestdata:",json_str)
             let encryptdata = scryUtil.reqDataSerialization(json_str)
             let json_encryptdata = JSON.stringify(encryptdata)
-            console.log(json_encryptdata)
 
             $.ajax({
                 url: host + 'submitOrder',
@@ -84,10 +83,10 @@ $(document).ready(function () {
                 success: function (data) {
 
                     console.log("data result:", data.public_key,"datatype:",data.datatype)
-                    let req_token_data_ = JSON.stringify(data)
-                    let token =  scryUtil.getAccessToke(req_token_data_)
+                    let req_token_data = JSON.stringify(data)
+                    let token =  scryUtil.getAccessToken(req_token_data)
                   // let resp = scryUtil.respDataDeserialization(data.data)
-                    alert('返回数据:' + data)
+                    alert('返回数据:' + token)
                 }
             })
     })

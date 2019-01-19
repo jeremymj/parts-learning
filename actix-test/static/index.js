@@ -4,6 +4,7 @@ const $ = require('jquery')
 $(document).ready(function () {
     let host = 'http://127.0.0.1:9080/'
     $('#generate-code-but').click(function () {
+
         let initOver = function () {
             alert("初始化结束，可以进行安全交互");
         }
@@ -18,7 +19,6 @@ $(document).ready(function () {
                 data: signed_data
             }, function (data, status) {
                 let json_data = JSON.parse(data)
-                console.log("data result:", json_data.data)
                 let resp = scryUtil.respDataDeserialization(json_data.data)
                 alert('用户认证成功')
             })
@@ -83,6 +83,8 @@ $(document).ready(function () {
                 success: function (data) {
 
                     console.log("data result:", data.public_key,"datatype:",data.datatype)
+                    //这个地方需要对数据进行包装
+
                     let req_token_data = JSON.stringify(data)
                     let token =  scryUtil.getAccessToken(req_token_data)
                   // let resp = scryUtil.respDataDeserialization(data.data)

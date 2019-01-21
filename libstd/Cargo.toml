@@ -1,0 +1,13 @@
+[package]
+name = "libstd"
+version = "0.1.0"
+authors = ["jeremy <jm140915@hotmail.com>"]
+edition = "2018"
+
+[lib]
+name="libstd"
+path="src/lib.rs"
+
+[dependencies]
+uuid = {version="0.7.1",features = ["serde", "v4"]}
+lmdb= {package="lmdb-rs",version="0.7.6"}

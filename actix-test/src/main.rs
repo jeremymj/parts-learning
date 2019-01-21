@@ -23,9 +23,9 @@ use futures::sync::mpsc;
 use grpcio::{ChannelBuilder, EnvBuilder};
 use lmdb_rs::{DbFlags, EnvBuilder as Lmdb_EnvBuilder};
 use scryinfo::author;
-use scryinfo::grpcproto::scryinfo_author::AuthorDataRequest;
+use scryinfo::grpcproto::scryinfo_author::{AuthorDataRequest,AccessTokenRequest};
 use scryinfo::grpcproto::scryinfo_author_grpc::AuthorClient;
-use serde_json::{Value};
+use serde_json::Value;
 
 lazy_static! {
     pub static ref  repos:Mutex<HashMap<String, (String,String)>> = Mutex::new(HashMap::new());
@@ -81,6 +81,7 @@ fn index_async_body(path: Path<String>) -> HttpResponse {
         .streaming(rx_body.map_err(|e| error::ErrorBadRequest("bad request")))
 }
 
+
 /// handler with path parameters like `/user/{name}/`
 fn with_param(req: &HttpRequest) -> HttpResponse {
     println!("{:?}", req);
@@ -94,6 +95,12 @@ fn with_param(req: &HttpRequest) -> HttpResponse {
 #[derive(Deserialize)]
 pub struct MyParams {
     data: String,
+}
+
+#[derive(Deserialize)]
+pub struct SubmitOrder {
+    AccessToken: String,
+    OrderDetail:String,
 }
 
 fn user_login(params: Form<MyParams>) -> Result<HttpResponse> {
@@ -110,7 +117,7 @@ fn user_login(params: Form<MyParams>) -> Result<HttpResponse> {
         let mut repos_mut = repos.lock().unwrap();
         repos_mut.insert(reply.get_token().to_string(), (reply.get_public_key().to_string(), reply.get_agree_key().to_string()));
     }
-    let resp_data =  author::aes::encrypt_content(result.as_bytes(),reply.get_agree_key());
+    let resp_data = author::aes::encrypt_content(result.as_bytes(), reply.get_agree_key());
 
     println!("verify token result is:{}", result);
 
@@ -138,9 +145,9 @@ pub fn get_decrypted_data(token: &str, encrypted_data: &str) -> std::string::Str
             e
         }
     };
-    println!("recevie data is:{}",receive_data);
+    println!("recevie data is:{}", receive_data);
 
-    let resp_data =  author::aes::encrypt_content(receive_data.as_bytes(),agree_key);
+    let resp_data = author::aes::encrypt_content(receive_data.as_bytes(), agree_key);
     println!("{}", resp_data);
     resp_data
 }
@@ -163,26 +170,50 @@ fn add_notice_method(params: Form<MyParams>) -> Result<HttpResponse> {
         .body(format!("{{\"data\":\"{}\"}}", resp_data)))
 }
 
-fn submit_order(params: Form<MyParams>) -> Result<HttpResponse> {
-    let order_data = params.data.clone();
-    println!("submit_order:{}", order_data);
-    let req_data_json: Value = serde_json::from_str(&order_data).unwrap();
-    //获取到token
-    let token = req_data_json["token"].to_string();
-    let token_str = token.trim_matches('"');
-    //加密的数据
-    let encrypt_data = req_data_json["data"].to_string();
-    let encrypt_data_str = encrypt_data.trim_matches('"');
-    let req_data = get_decrypted_data(token_str, encrypt_data_str);
-    //这个请求需要用户的授权,拼接用户授权的数据
+fn require_authorization(params: Form<MyParams>) -> Result<HttpResponse> {
+    let data = params.data.clone();
+    println!("query request need author:{}", data);
+    // TODO 添加对用户是否认证的检查
     let puk = author::eckey::load_public_key();
-    let author_data = format!("{{\"public_key\":\"{}\",\"datatype\":\"{}\"}}",puk,"UserBasicInfo");
-
-    println!("submit order resp data is：{}",author_data);
-
+    //关于是否需要认证,这个地方可以通过查询相关配置文件
+    let resp_data = format!("{{\"result\":\"{}\",\"public_key\":\"{}\",\"datatype\":\"{}\"}}",true,puk, "UserBasicInfo");
+    println!("require_authorization data is:{}",resp_data);
     Ok(HttpResponse::build(http::StatusCode::OK)
         .content_type("text/plain")
-        .body(author_data))
+        .body(resp_data))
+}
+
+fn submit_order(params: Form<SubmitOrder>) -> Result<HttpResponse> {
+    let order_data = params.OrderDetail.clone();
+    let access_token = params.AccessToken.clone();
+    println!("submit_order:{},access token:{}", order_data,access_token);
+    let req_data_json: Value = serde_json::from_str(&order_data).unwrap();
+    //获取到token,这个token与用户信息进行关联
+    let token = req_data_json["token"].to_string();
+    let token_str = token.trim_matches('"');
+    //加密的数据，用户提交的数据
+    let encrypt_data = req_data_json["data"].to_string();
+    let encrypt_data_str = encrypt_data.trim_matches('"');
+
+    let req_data = get_decrypted_data(token_str, encrypt_data_str);
+
+
+    let env = Arc::new(EnvBuilder::new().build());
+    let ch = ChannelBuilder::new(env).connect("172.17.0.1:48080");
+    let client = AuthorClient::new(ch);
+    let mut request = AccessTokenRequest::new();
+    request.set_token(access_token);
+    let response = client.get_data_by_access_token(&request).unwrap();
+    let resp_data;
+    if response.get_status(){
+        println!("user data is:{}",response.get_detail());
+        resp_data = format!("{{\"result\":\"{}\"}}",true);
+    }else {
+        resp_data = format!("{{\"result\":\"{}\",\"msg\":\"{}\"}}",false,response.get_detail());
+    }
+    Ok(HttpResponse::build(http::StatusCode::OK)
+        .content_type("text/text")
+        .body(resp_data))
 }
 
 fn main() {
@@ -191,15 +222,15 @@ fn main() {
       env_logger::init();*/
     let pair = author::utils::check_file_exist("keystore");
     match pair {
-        Some(file)=>println!("keystore file is exist!"),
-        None=>{
-           let generate_flag =  author::eckey::password_set("123456");
+        Some(file) => println!("keystore file is exist!"),
+        None => {
+            let generate_flag = author::eckey::password_set("123456");
             match generate_flag {
-                Ok(flag) =>{
-                  println!("服务端密钥初始化结束");
-                },
-                Err(e)=>{
-                    println!("{}",e.to_string());
+                Ok(flag) => {
+                    println!("服务端密钥初始化结束");
+                }
+                Err(e) => {
+                    println!("{}", e.to_string());
                 }
             }
         }
@@ -208,24 +239,25 @@ fn main() {
 
     let addr = server::new(
         || App::new()
-            // enable logger
+// enable logger
             .middleware(middleware::Logger::default())
-            // cookie session middleware
+// cookie session middleware
             .middleware(session::SessionStorage::new(
                 session::CookieSessionBackend::signed(&[0; 32]).secure(false)
             ))
-            // register favicon
+// register favicon
             .resource("/favicon", |r| r.f(favicon))
-            // register simple route, handle all methods
+// register simple route, handle all methods
             .resource("/welcome", |r| r.f(welcome))
-            // with path parameters
+// with path parameters
             .resource("/user/{name}", |r| r.method(Method::GET).f(with_param))
-            // async handler
+// async handler
             .resource("/async/{name}", |r| r.method(Method::GET).a(index_async))
-            // async handler
+// async handler
             .resource("/async-body/{name}", |r| r.method(Method::GET).with(index_async_body))
             .resource("/userLogin", |r| r.method(Method::POST).with(user_login))
             .resource("/addNoticeMethod", |r| r.method(Method::POST).with(add_notice_method))
+            .resource("/isAuthorAccess", |r| r.method(Method::POST).with(require_authorization))
             .resource("/submitOrder", |r| r.method(Method::POST).with(submit_order))
             .resource("/test", |r| r.f(|req| {
                 match *req.method() {
@@ -238,21 +270,21 @@ fn main() {
                 error::InternalError::new(
                     io::Error::new(io::ErrorKind::Other, "test"), StatusCode::INTERNAL_SERVER_ERROR)
             }))
-            // static files
+// static files
             .handler("/static", fs::StaticFiles::new("static").unwrap())
-            // redirect
+// redirect
             .resource("/", |r| r.method(Method::GET).f(|req| {
                 println!("{:?}", req);
                 HttpResponse::Found()
                     .header(header::LOCATION, "static/page/welcome.html")
                     .finish()
             }))
-            // default
+// default
             .default_resource(|r| {
-                // 404 for GET request
+// 404 for GET request
                 r.method(Method::GET).f(p404);
 
-                // all requests that are not `GET`
+// all requests that are not `GET`
                 r.route().filter(pred::Not(pred::Get())).f(
                     |req| HttpResponse::MethodNotAllowed());
             }))

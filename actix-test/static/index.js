@@ -31,9 +31,9 @@ $(document).ready(function () {
         let tel = $('#user-info-tel-div input').val()
         let address = $('#user-info-address-div input').val()
         let credit_card = $('#user-info-credit_card input').val()
-        let token = localStorage.getItem("token")
-        let requestdata = {token: token, tel: tel, address: address, credit_card: credit_card}
-        console.log("commit info is:",requestdata)
+        let requestdata = {tel: tel, address: address, credit_card: credit_card}
+        console.log("commit info is:", requestdata)
+        //这个地方还是需要写回调函数处理提交数据的结果
         scryUtil.addUserInfo('http://localhost:8080', requestdata)
 
     })
@@ -65,58 +65,76 @@ $(document).ready(function () {
         })
     })
 
-        $('#cart-submit').click(function () {
+    $('#cart-submit').click(function () {
 
-            let requestdata = {id: "SN23354"};
-            let json_str = JSON.stringify(requestdata)
-            console.log("cart-submit,requestdata:",json_str)
-            let encryptdata = scryUtil.reqDataSerialization(json_str)
-            let json_encryptdata = JSON.stringify(encryptdata)
+        let requestdata = {id: "SN23354"};
+        let json_str = JSON.stringify(requestdata)
+        console.log("cart-submit,requestdata:", json_str)
+        let encryptdata = scryUtil.reqDataSerialization(json_str)
+        let json_encryptdata = JSON.stringify(encryptdata)
 
+        let func = function(token){
             $.ajax({
                 url: host + 'submitOrder',
                 data: {
-                    data: json_encryptdata
+                    AccessToken:token,
+                    OrderDetail: json_encryptdata
                 },
                 type: "POST",
                 dataType: "json",
                 success: function (data) {
-
-                    console.log("data result:", data.public_key,"datatype:",data.datatype)
-                    //这个地方需要对数据进行包装
-
-                    let req_token_data = JSON.stringify(data)
-                    let token =  scryUtil.getAccessToken(req_token_data)
-                  // let resp = scryUtil.respDataDeserialization(data.data)
-                    alert('返回数据:' + token)
+                    alert('订单提交成功')
+                },
+                error:function (data) {
+                    alert(data.msg)
                 }
             })
-    })
-
-   /* $('#submit').click(function () {
-        let tel = $('#tel-div input').val()
-        let address = $('#address-div input').val()
-        let requestdata = {tel: tel, address: address}
-        console.log(requestdata)
-        let json_str = JSON.stringify(requestdata)
-        console.log(json_str)
-        let encryptdata = scryUtil.reqDataSerialization(json_str)
-        let json_encryptdata = JSON.stringify(encryptdata)
-        console.log(json_encryptdata)
+        }
 
         $.ajax({
-            url: host + 'addNoticeMethod',
+            url: host + 'isAuthorAccess',
             data: {
-                data: json_encryptdata
+                data: 'submitOrder'
             },
             type: "POST",
             dataType: "json",
             success: function (data) {
-                console.log("data result:", data.data)
-                let resp = scryUtil.respDataDeserialization(data.data)
-                alert('返回数据:' + resp)
+                if (data.result) {
+                    //需要获取访问token
+                    let author_data = {"public_key": data.public_key, "datatype": data.datatype}
+                    let req_token_data = JSON.stringify(author_data)
+                    console.log("req token data:", req_token_data)
+                    let token = scryUtil.getAccessToken(req_token_data,func)
+                } else {
+                }
             }
         })
-    })*/
+    })
+
+    /* $('#submit').click(function () {
+         let tel = $('#tel-div input').val()
+         let address = $('#address-div input').val()
+         let requestdata = {tel: tel, address: address}
+         console.log(requestdata)
+         let json_str = JSON.stringify(requestdata)
+         console.log(json_str)
+         let encryptdata = scryUtil.reqDataSerialization(json_str)
+         let json_encryptdata = JSON.stringify(encryptdata)
+         console.log(json_encryptdata)
+
+         $.ajax({
+             url: host + 'addNoticeMethod',
+             data: {
+                 data: json_encryptdata
+             },
+             type: "POST",
+             dataType: "json",
+             success: function (data) {
+                 console.log("data result:", data.data)
+                 let resp = scryUtil.respDataDeserialization(data.data)
+                 alert('返回数据:' + resp)
+             }
+         })
+     })*/
 })
 

@@ -279,12 +279,12 @@ fn main() {
                     .header(header::LOCATION, "static/page/welcome.html")
                     .finish()
             }))
-// default
+            // default
             .default_resource(|r| {
-// 404 for GET request
+            // 404 for GET request
                 r.method(Method::GET).f(p404);
 
-// all requests that are not `GET`
+            // all requests that are not `GET`
                 r.route().filter(pred::Not(pred::Get())).f(
                     |req| HttpResponse::MethodNotAllowed());
             }))

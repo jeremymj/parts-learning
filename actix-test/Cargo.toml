@@ -18,6 +18,5 @@ serde_json = "*"
 grpcio = "0.4"
 protobuf = "2"
 lazy_static= "*"
-lmdb-rs = "0.7.6"
 
 scryinfo = {path = "/home/jeremy/work/ClionProjects/self/demo/scryinfo"}

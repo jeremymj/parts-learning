@@ -6,6 +6,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
 
+use serde_json::Value;
 use std::{env, io, path::PathBuf};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -21,11 +22,11 @@ use futures::future::{FutureResult, result};
 use futures::Stream;
 use futures::sync::mpsc;
 use grpcio::{ChannelBuilder, EnvBuilder};
-use lmdb_rs::{DbFlags, EnvBuilder as Lmdb_EnvBuilder};
-use scryinfo::author;
-use scryinfo::grpcproto::scryinfo_author::{AuthorDataRequest,AccessTokenRequest};
+
+use scryinfo::{self, author};
+use scryinfo::grpcproto::scryinfo_author::{AuthorDataRequest, AccessTokenRequest, AuthorDataResponse};
 use scryinfo::grpcproto::scryinfo_author_grpc::AuthorClient;
-use serde_json::Value;
+
 
 lazy_static! {
     pub static ref  repos:Mutex<HashMap<String, (String,String)>> = Mutex::new(HashMap::new());
@@ -99,8 +100,8 @@ pub struct MyParams {
 
 #[derive(Deserialize)]
 pub struct SubmitOrder {
-    AccessToken: String,
-    OrderDetail:String,
+    access_token: String,
+    order_detail: String,
 }
 
 fn user_login(params: Form<MyParams>) -> Result<HttpResponse> {
@@ -111,13 +112,14 @@ fn user_login(params: Form<MyParams>) -> Result<HttpResponse> {
     let client = AuthorClient::new(ch);
     let mut request = AuthorDataRequest::new();
     request.set_data(params.data.clone());
-    let reply = client.verify_token(&request).unwrap();
+    let reply: AuthorDataResponse = client.verify_token(&request).unwrap();
+
     let result = format!("public key:{},token:{},agree_key:{}", reply.get_public_key(), reply.get_token(), reply.get_agree_key());
     {
         let mut repos_mut = repos.lock().unwrap();
         repos_mut.insert(reply.get_token().to_string(), (reply.get_public_key().to_string(), reply.get_agree_key().to_string()));
     }
-    let resp_data = author::aes::encrypt_content(result.as_bytes(), reply.get_agree_key());
+    let resp_data = author::msg_process::encrypt_content(result.as_bytes(), reply.get_agree_key());
 
     println!("verify token result is:{}", result);
 
@@ -134,7 +136,7 @@ pub fn get_decrypted_data(token: &str, encrypted_data: &str) -> std::string::Str
     println!("agree key:{}", agree_key);
     println!("encrypted data is:{}", encrypted_data);
     //decrypt_content(data: &str, agree_key: &str)
-    let result = author::aes::decrypt_content(encrypted_data, agree_key);
+    let result = author::msg_process::decrypt_content(encrypted_data, agree_key);
     let receive_data = match result {
         Ok(data) => {
             //println!("decrypt data is:{}",String::from_utf8(data).unwrap());
@@ -147,7 +149,7 @@ pub fn get_decrypted_data(token: &str, encrypted_data: &str) -> std::string::Str
     };
     println!("recevie data is:{}", receive_data);
 
-    let resp_data = author::aes::encrypt_content(receive_data.as_bytes(), agree_key);
+    let resp_data = author::msg_process::encrypt_content(receive_data.as_bytes(), agree_key);
     println!("{}", resp_data);
     resp_data
 }
@@ -176,17 +178,17 @@ fn require_authorization(params: Form<MyParams>) -> Result<HttpResponse> {
     // TODO 添加对用户是否认证的检查
     let puk = author::eckey::load_public_key();
     //关于是否需要认证,这个地方可以通过查询相关配置文件
-    let resp_data = format!("{{\"result\":\"{}\",\"public_key\":\"{}\",\"datatype\":\"{}\"}}",true,puk, "UserBasicInfo");
-    println!("require_authorization data is:{}",resp_data);
+    let resp_data = format!("{{\"result\":\"{}\",\"public_key\":\"{}\",\"datatype\":\"{}\"}}", true, puk, "UserBasicInfo");
+    println!("require_authorization data is:{}", resp_data);
     Ok(HttpResponse::build(http::StatusCode::OK)
         .content_type("text/plain")
         .body(resp_data))
 }
 
 fn submit_order(params: Form<SubmitOrder>) -> Result<HttpResponse> {
-    let order_data = params.OrderDetail.clone();
-    let access_token = params.AccessToken.clone();
-    println!("submit_order:{},access token:{}", order_data,access_token);
+    let order_data = params.order_detail.clone();
+    let access_token = params.access_token.clone();
+    println!("submit_order:{},access token:{}", order_data, access_token);
     let req_data_json: Value = serde_json::from_str(&order_data).unwrap();
     //获取到token,这个token与用户信息进行关联
     let token = req_data_json["token"].to_string();
@@ -197,7 +199,6 @@ fn submit_order(params: Form<SubmitOrder>) -> Result<HttpResponse> {
 
     let req_data = get_decrypted_data(token_str, encrypt_data_str);
 
-
     let env = Arc::new(EnvBuilder::new().build());
     let ch = ChannelBuilder::new(env).connect("172.17.0.1:48080");
     let client = AuthorClient::new(ch);
@@ -205,11 +206,11 @@ fn submit_order(params: Form<SubmitOrder>) -> Result<HttpResponse> {
     request.set_token(access_token);
     let response = client.get_data_by_access_token(&request).unwrap();
     let resp_data;
-    if response.get_status(){
-        println!("user data is:{}",response.get_detail());
-        resp_data = format!("{{\"result\":\"{}\"}}",true);
-    }else {
-        resp_data = format!("{{\"result\":\"{}\",\"msg\":\"{}\"}}",false,response.get_detail());
+    if response.get_status() {
+        println!("user data is:{}", response.get_detail());
+        resp_data = format!("{{\"result\":\"{}\"}}", true);
+    } else {
+        resp_data = format!("{{\"result\":\"{}\",\"msg\":\"{}\"}}", false, response.get_detail());
     }
     Ok(HttpResponse::build(http::StatusCode::OK)
         .content_type("text/text")
@@ -217,14 +218,17 @@ fn submit_order(params: Form<SubmitOrder>) -> Result<HttpResponse> {
 }
 
 fn main() {
-    /*  env::set_var("RUST_LOG", "actix_web=debug");
+     env::set_var("RUST_LOG", "actix_web=debug");
       env::set_var("RUST_BACKTRACE", "1");
-      env_logger::init();*/
-    let pair = author::utils::check_file_exist("keystore");
+      env_logger::init();
+
+
+    let pair = scryinfo::util::fs::check_file_exist("keystore");
+
     match pair {
         Some(file) => println!("keystore file is exist!"),
         None => {
-            let generate_flag = author::eckey::password_set("123456");
+            let generate_flag = author::account::create_account("123456", true,author::eckey::EcKey::FILE);
             match generate_flag {
                 Ok(flag) => {
                     println!("服务端密钥初始化结束");
@@ -270,9 +274,9 @@ fn main() {
                 error::InternalError::new(
                     io::Error::new(io::ErrorKind::Other, "test"), StatusCode::INTERNAL_SERVER_ERROR)
             }))
-// static files
+            // static files
             .handler("/static", fs::StaticFiles::new("static").unwrap())
-// redirect
+            // redirect
             .resource("/", |r| r.method(Method::GET).f(|req| {
                 println!("{:?}", req);
                 HttpResponse::Found()
@@ -281,10 +285,10 @@ fn main() {
             }))
             // default
             .default_resource(|r| {
-            // 404 for GET request
+                // 404 for GET request
                 r.method(Method::GET).f(p404);
 
-            // all requests that are not `GET`
+                // all requests that are not `GET`
                 r.route().filter(pred::Not(pred::Get())).f(
                     |req| HttpResponse::MethodNotAllowed());
             }))

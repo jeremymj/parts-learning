@@ -1300,6 +1300,7 @@ dependencies = [
  "json 0.11.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ring 0.13.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "scry-crypto 0.1.0",
  "scry-db-util 0.1.0",
  "scry-fs-util 0.1.0",

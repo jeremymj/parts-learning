@@ -108,20 +108,23 @@ fn user_login(params: Form<MyParams>) -> Result<HttpResponse> {
     println!("post data is:{}", params.data);
 
     let env = Arc::new(EnvBuilder::new().build());
-    let ch = ChannelBuilder::new(env).connect("172.17.0.1:48080");
+    let ch = ChannelBuilder::new(env).connect("192.168.202.1:48080");
     let client = AuthorClient::new(ch);
     let mut request = AuthorDataRequest::new();
     request.set_data(params.data.clone());
     let reply: AuthorDataResponse = client.verify_token(&request).unwrap();
-
-    let result = format!("public key:{},token:{},agree_key:{}", reply.get_public_key(), reply.get_token(), reply.get_agree_key());
-    {
-        let mut repos_mut = repos.lock().unwrap();
-        repos_mut.insert(reply.get_token().to_string(), (reply.get_public_key().to_string(), reply.get_agree_key().to_string()));
+    let mut resp_data;
+    if reply.get_status() {
+        let result = format!("public key:{},token:{},agree_key:{}", reply.get_public_key(), reply.get_token(), reply.get_agree_key());
+        {
+            let mut repos_mut = repos.lock().unwrap();
+            repos_mut.insert(reply.get_token().to_string(), (reply.get_public_key().to_string(), reply.get_agree_key().to_string()));
+        }
+        resp_data = author::msg_process::encrypt_content(result.as_bytes(), reply.get_agree_key());
+        println!("verify token result is:{}", result);
+    } else {
+        resp_data = String::from("请先认证");
     }
-    let resp_data = author::msg_process::encrypt_content(result.as_bytes(), reply.get_agree_key());
-
-    println!("verify token result is:{}", result);
 
     Ok(HttpResponse::build(http::StatusCode::OK)
         .content_type("text/plain")
@@ -186,6 +189,7 @@ fn require_authorization(params: Form<MyParams>) -> Result<HttpResponse> {
 }
 
 fn submit_order(params: Form<SubmitOrder>) -> Result<HttpResponse> {
+    println!("submit_order.................");
     let order_data = params.order_detail.clone();
     let access_token = params.access_token.clone();
     println!("submit_order:{},access token:{}", order_data, access_token);
@@ -200,7 +204,7 @@ fn submit_order(params: Form<SubmitOrder>) -> Result<HttpResponse> {
     let req_data = get_decrypted_data(token_str, encrypt_data_str);
 
     let env = Arc::new(EnvBuilder::new().build());
-    let ch = ChannelBuilder::new(env).connect("172.17.0.1:48080");
+    let ch = ChannelBuilder::new(env).connect("192.168.202.1:48080");
     let client = AuthorClient::new(ch);
     let mut request = AccessTokenRequest::new();
     request.set_token(access_token);
@@ -218,17 +222,16 @@ fn submit_order(params: Form<SubmitOrder>) -> Result<HttpResponse> {
 }
 
 fn main() {
-     env::set_var("RUST_LOG", "actix_web=debug");
-      env::set_var("RUST_BACKTRACE", "1");
-      env_logger::init();
-
+    env::set_var("RUST_LOG", "actix_web=debug");
+    env::set_var("RUST_BACKTRACE", "1");
+    env_logger::init();
 
     let pair = scryinfo::util::fs::check_file_exist("keystore");
 
     match pair {
         Some(file) => println!("keystore file is exist!"),
         None => {
-            let generate_flag = author::account::create_account("123456", true,author::eckey::EcKey::FILE);
+            let generate_flag = author::account::create_account("123456", true, author::eckey::EcKey::FILE);
             match generate_flag {
                 Ok(flag) => {
                     println!("服务端密钥初始化结束");

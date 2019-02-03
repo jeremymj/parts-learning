@@ -34,7 +34,10 @@ $(document).ready(function () {
     let requestdata = { tel: tel, address: address, credit_card: credit_card }
     console.log('commit info is:', requestdata)
     //这个地方还是需要写回调函数处理提交数据的结果
-    scryUtil.addUserInfo('http://localhost:8080', requestdata)
+    let callback = function(data){
+      alert("提交信息成功")
+    }
+    scryUtil.addUserInfo('http://localhost:8080', requestdata,callback)
 
   })
 
@@ -73,16 +76,22 @@ $(document).ready(function () {
     let json_encryptdata = JSON.stringify(encryptdata)
 
     let func = function (token) {
+      console.log("func get token is:",token)
       $.ajax({
         url: host + 'submitOrder',
         data: {
-          AccessToken: token,
-          OrderDetail: json_encryptdata
+          order_detail: json_encryptdata,
+          access_token: token
         },
         type: 'POST',
         dataType: 'json',
         success: function (data) {
-          alert('订单提交成功')
+          if (data.result){
+            alert('订单提交成功')
+          }else {
+            alert(data.msg)
+          }
+
         },
         error: function (data) {
           alert(data.msg)

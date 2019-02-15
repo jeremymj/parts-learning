@@ -1,44 +1,48 @@
-use uuid::Uuid;
-use lmdb::{EnvBuilder, DbFlags};
+#[macro_use]
+extern crate serde_derive;
 
+pub mod toml_pares;
+pub mod lmdb_use;
+pub mod uuid_std;
+pub mod serde_json_std;
+pub mod scrypt_std;
 
-pub fn uuid_test() {
-    let my_uuid = Uuid::new_v4();
-   // dbg!(my_uuid);
-    println!("uuid string:{}",my_uuid.to_string());
-    println!("uuid hyphenated:{}",my_uuid.to_hyphenated());
-    let token = my_uuid.to_simple();
-    println!("uuid simple:{}",token.to_string());
-    println!("uuid urn:{}",my_uuid.to_urn());
-}
+#[cfg(test)]
+mod tests {
+    use super::uuid_std;
+    use super::toml_pares;
+    use super::serde_json_std;
+    use super::scrypt_std;
+    #[test]
+    fn uuid_test(){
+        uuid_std::uuid_test();
+    }
 
-pub fn lmdb_test(){
-   let env =  EnvBuilder::new().open("test-lmdb",0o777).unwrap();
+    #[test]
+    fn parse_toml(){
+        toml_pares::parse_toml();
+        assert_eq!(1,2);
+    }
+    #[test]
+    fn json_test(){
+        //serde_json_std::serde_json_test();
+        let f = 262144 as f32;
+        println!("{}",f.log2());
+        assert_eq!(1,2);
+    }
 
-    let db_handle = env.get_default_db(DbFlags::empty()).unwrap();
-    let txn = env.new_transaction().unwrap();
-    {
-        let db = txn.bind(&db_handle); // get a database bound to this transaction
+    #[test]
+    fn scrypt_test(){
+        let ret = scrypt_std::test_scrypt_128();
+        match ret {
+            Ok(_)=>{
 
-        let pairs = vec![("Albert", "Einstein",),
-                         ("Joe", "Smith",),
-                         ("Jack", "Daniels")];
-
-        for &(name, surname) in pairs.iter() {
-            db.set(&surname, &name).unwrap();
+            },
+            Err(e)=>{
+                println!("error:{}",e)
+            }
         }
+        assert_eq!(1,2);
     }
-
-    // Note: `commit` is choosen to be explicit as
-    // in case of failure it is responsibility of
-    // the client to handle the error
-    match txn.commit() {
-        Err(_) => panic!("failed to commit!"),
-        Ok(_) => ()
-    }
-
-    let reader = env.get_reader().unwrap();
-    let db = reader.bind(&db_handle);
-    let name = db.get::<&str>(&"Smith").unwrap();
-    println!("It's {} Smith", name);
 }
+
